@@ -1,0 +1,10 @@
+# koolkit/registry.toml — public plugins installable via `kk install <name>`
+[[plugin]]
+name = "goto"
+repo = "localshred/kk-goto"
+asset = "kk-goto_{{.Os}}_{{.Arch}}.tar.gz"
+
+[[plugin]]
+name = "prs"
+repo = "localshred/kk-prs"
+asset = "kk-prs_{{.Os}}_{{.Arch}}.tar.gz"
