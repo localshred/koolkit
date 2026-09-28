@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/localshred/koolkit/pkg/run"
 )
 
 func writeExec(t *testing.T, dir, name, body string) {
@@ -15,11 +17,43 @@ func writeExec(t *testing.T, dir, name, body string) {
 	}
 }
 
+type fakeRunner struct {
+	describes map[string]string
+}
+
+func (f fakeRunner) Run(name string, args ...string) (run.Result, error) {
+	if len(args) == 1 && args[0] == "--kk-describe" {
+		if desc, ok := f.describes[name]; ok {
+			return run.Result{Stdout: desc}, nil
+		}
+	}
+	return run.Result{}, nil
+}
+
+func (f fakeRunner) Look(name string) (string, bool) {
+	_, ok := f.describes[name]
+	return "/fake/path/" + name, ok
+}
+
+type slowRunner struct{}
+
+func (slowRunner) Run(name string, args ...string) (run.Result, error) {
+	time.Sleep(2 * time.Second)
+	return run.Result{Stdout: "late"}, nil
+}
+
+func (slowRunner) Look(name string) (string, bool) {
+	return "/fake/path/" + name, true
+}
+
 func TestDiscoverReadsDescribe(t *testing.T) {
 	dir := t.TempDir()
-	writeExec(t, dir, "kk-goto", `[ "$1" = "--kk-describe" ] && echo "navigate SCM urls"`)
+	writeExec(t, dir, "kk-goto", `echo stub`)
 	writeExec(t, dir, "notaplugin", `echo hi`)
 	m := New(dir)
+	m.Run = fakeRunner{describes: map[string]string{
+		"kk-goto": "navigate SCM urls",
+	}}
 	got, err := m.Discover()
 	if err != nil {
 		t.Fatal(err)
@@ -31,13 +65,15 @@ func TestDiscoverReadsDescribe(t *testing.T) {
 
 func TestDescribeTimesOut(t *testing.T) {
 	dir := t.TempDir()
-	writeExec(t, dir, "kk-slow", `[ "$1" = "--kk-describe" ] && sleep 5; echo late`)
+	writeExec(t, dir, "kk-slow", `echo stub`)
 	m := New(dir)
-	m.Timeout = 200 * time.Millisecond
+	m.Run = slowRunner{}
+	m.Timeout = 50 * time.Millisecond
 	start := time.Now()
 	got, _ := m.Discover()
-	if time.Since(start) > 2*time.Second {
-		t.Fatal("discover blocked on a hung plugin")
+	elapsed := time.Since(start)
+	if elapsed > 500*time.Millisecond {
+		t.Fatalf("discover blocked on a hung plugin: took %v", elapsed)
 	}
 	if len(got) != 1 || got[0].Describe != "" {
 		t.Fatalf("hung describe should yield empty desc, got %+v", got)

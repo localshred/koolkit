@@ -3,13 +3,13 @@
 package pluginmgr
 
 import (
-	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/localshred/koolkit/pkg/run"
 )
 
 const prefix = "kk-"
@@ -22,10 +22,13 @@ type Plugin struct {
 
 type Manager struct {
 	Dir     string
+	Run     run.Runner
 	Timeout time.Duration
 }
 
-func New(dir string) *Manager { return &Manager{Dir: dir, Timeout: 2 * time.Second} }
+func New(dir string) *Manager {
+	return &Manager{Dir: dir, Run: run.Default, Timeout: 2 * time.Second}
+}
 
 // Find returns the absolute path of kk-<name>, preferring the managed dir
 // then falling back to PATH (development fallback).
@@ -34,7 +37,7 @@ func (m *Manager) Find(name string) (string, bool) {
 	if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
 		return p, true
 	}
-	if p, err := exec.LookPath(prefix + name); err == nil {
+	if p, ok := m.Run.Look(prefix + name); ok {
 		return p, true
 	}
 	return "", false
@@ -56,22 +59,31 @@ func (m *Manager) Discover() ([]Plugin, error) {
 			continue
 		}
 		path := filepath.Join(m.Dir, e.Name())
+		name := strings.TrimPrefix(e.Name(), prefix)
 		out = append(out, Plugin{
-			Name:     strings.TrimPrefix(e.Name(), prefix),
+			Name:     name,
 			Path:     path,
-			Describe: m.describe(path),
+			Describe: m.describe(name),
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out, nil
 }
 
-func (m *Manager) describe(path string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), m.Timeout)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, path, "--kk-describe").Output()
-	if err != nil {
-		return ""
+func (m *Manager) describe(name string) string {
+	ch := make(chan string, 1) // buffered cap 1 — abandoned goroutine never blocks/leaks
+	go func() {
+		res, err := m.Run.Run("kk-"+name, "--kk-describe")
+		if err != nil {
+			ch <- ""
+			return
+		}
+		ch <- strings.TrimSpace(res.Stdout)
+	}()
+	select {
+	case s := <-ch:
+		return s
+	case <-time.After(m.Timeout):
+		return "" // hung plugin: skip its describe, Discover keeps going
 	}
-	return strings.TrimSpace(string(out))
 }
