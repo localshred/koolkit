@@ -54,7 +54,7 @@ func NewRoot(version string) *cobra.Command {
 		}
 		return nil
 	}
-	root.AddCommand(newInstallCmd(), newUninstallCmd(), newListCmd(), newRegistryCmd())
+	root.AddCommand(newBootstrapCmd(), newDoctorCmd(), newInstallCmd(), newUninstallCmd(), newListCmd(), newRegistryCmd())
 	return root
 }
 
