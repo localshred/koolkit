@@ -2,6 +2,7 @@ package pluginmgr
 
 import (
 	"testing"
+	"time"
 
 	"github.com/localshred/koolkit/pkg/run"
 )
@@ -24,5 +25,31 @@ func TestDoctorAggregatesRequires(t *testing.T) {
 	}
 	if byTool["k9s"].Present || len(byTool["k9s"].NeededBy) != 1 {
 		t.Fatalf("k9s status = %+v", byTool["k9s"])
+	}
+}
+
+type blockingRunner struct{}
+
+func (blockingRunner) Run(name string, args ...string) (run.Result, error) {
+	time.Sleep(200 * time.Millisecond)
+	return run.Result{Stdout: "late"}, nil
+}
+
+func (blockingRunner) Look(name string) (string, bool) {
+	return "/fake/path/" + name, true
+}
+
+func TestRequiresTimesOutHungPlugin(t *testing.T) {
+	m := New(t.TempDir())
+	m.Run = blockingRunner{}
+	m.Timeout = 50 * time.Millisecond
+	start := time.Now()
+	got := m.Requires("/fake/hung-plugin")
+	elapsed := time.Since(start)
+	if elapsed > 100*time.Millisecond {
+		t.Fatalf("Requires blocked on hung plugin: took %v", elapsed)
+	}
+	if got != nil {
+		t.Fatalf("hung plugin should return nil, got %v", got)
 	}
 }

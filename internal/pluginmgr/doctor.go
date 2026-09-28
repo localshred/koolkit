@@ -1,34 +1,45 @@
 package pluginmgr
 
 import (
-	"context"
-	"os/exec"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/localshred/koolkit/pkg/run"
 )
 
+// ToolStatus aggregates a subject tool's presence and the installed plugins
+// that require it.
 type ToolStatus struct {
 	Tool     string
 	Present  bool
 	NeededBy []string
 }
 
+// Requires returns the subject tools a plugin declares via --kk-requires,
+// one per line. A hung plugin is bounded by m.Timeout (returns nil).
 func (m *Manager) Requires(path string) []string {
-	ctx, cancel := context.WithTimeout(context.Background(), m.Timeout)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, path, "--kk-requires").Output()
-	if err != nil {
-		return nil
-	}
-	var tools []string
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if t := strings.TrimSpace(line); t != "" {
-			tools = append(tools, t)
+	ch := make(chan []string, 1) // buffered cap 1 — abandoned goroutine never blocks/leaks
+	go func() {
+		res, err := m.Run.Run(path, "--kk-requires")
+		if err != nil {
+			ch <- nil
+			return
 		}
+		var tools []string
+		for _, line := range strings.Split(res.Stdout, "\n") {
+			if t := strings.TrimSpace(line); t != "" {
+				tools = append(tools, t)
+			}
+		}
+		ch <- tools
+	}()
+	select {
+	case tools := <-ch:
+		return tools
+	case <-time.After(m.Timeout):
+		return nil // hung plugin: skip its requires, Doctor keeps going
 	}
-	return tools
 }
 
 // Doctor reports the subject tools every installed plugin requires, each
