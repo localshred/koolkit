@@ -41,21 +41,6 @@ func newInstallCmd() *cobra.Command {
 	}
 }
 
-// resolvePlugin returns a registry entry for name, or synthesizes one from a
-// direct github path (github.com/owner/kk-foo).
-func resolvePlugin(avail map[string]registry.Plugin, name string) (registry.Plugin, error) {
-	if strings.HasPrefix(name, "github.com/") {
-		repo := strings.TrimPrefix(name, "github.com/")
-		base := repo[strings.LastIndex(repo, "/")+1:]
-		short := strings.TrimPrefix(base, "kk-")
-		return registry.Plugin{Name: short, Repo: repo, Asset: base + "_{{.Os}}_{{.Arch}}.tar.gz"}, nil
-	}
-	if p, ok := registry.Resolve(avail, name); ok {
-		return p, nil
-	}
-	return registry.Plugin{}, fmt.Errorf("no plugin %q in any registry; try a direct github.com/owner/kk-%s path", name, name)
-}
-
 func newUninstallCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "uninstall <name>...",
@@ -71,4 +56,19 @@ func newUninstallCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// resolvePlugin returns a registry entry for name, or synthesizes one from a
+// direct github path (github.com/owner/kk-foo).
+func resolvePlugin(avail map[string]registry.Plugin, name string) (registry.Plugin, error) {
+	if strings.HasPrefix(name, "github.com/") {
+		repo := strings.TrimPrefix(name, "github.com/")
+		base := repo[strings.LastIndex(repo, "/")+1:]
+		short := strings.TrimPrefix(base, "kk-")
+		return registry.Plugin{Name: short, Repo: repo, Asset: base + "_{{.Os}}_{{.Arch}}.tar.gz"}, nil
+	}
+	if p, ok := registry.Resolve(avail, name); ok {
+		return p, nil
+	}
+	return registry.Plugin{}, fmt.Errorf("no plugin %q in any registry; try a direct github.com/owner/kk-%s path", name, name)
 }
