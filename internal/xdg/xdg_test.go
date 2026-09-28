@@ -22,3 +22,18 @@ func TestDataDirFallsBackToHome(t *testing.T) {
 		t.Fatalf("DataDir = %q, want %q", got, want)
 	}
 }
+
+func TestConfigDirHonorsXDG(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "/tmp/xdgconfig")
+	if got, want := ConfigDir(), filepath.Join("/tmp/xdgconfig", "koolkit"); got != want {
+		t.Fatalf("ConfigDir = %q, want %q", got, want)
+	}
+}
+
+func TestConfigDirFallsBackToHome(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("HOME", "/home/bj")
+	if got, want := ConfigDir(), filepath.Join("/home/bj", filepath.FromSlash(".config"), "koolkit"); got != want {
+		t.Fatalf("ConfigDir = %q, want %q", got, want)
+	}
+}
