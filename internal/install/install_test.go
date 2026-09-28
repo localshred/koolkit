@@ -85,4 +85,7 @@ func TestInstall404Aborts(t *testing.T) {
 	if err := Install(mapDownloader{}, binDir, p, "darwin", "arm64"); err == nil {
 		t.Fatal("missing asset should error")
 	}
+	if _, err := os.Stat(filepath.Join(binDir, "kk-goto")); !os.IsNotExist(err) {
+		t.Fatal("no binary should be left after 404")
+	}
 }
