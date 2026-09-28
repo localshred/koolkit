@@ -25,3 +25,27 @@ func TestManyReturnsAllSelected(t *testing.T) {
 		t.Fatalf("got=%v err=%v", got, err)
 	}
 }
+
+func TestOneCancelReturnsFalse(t *testing.T) {
+	orig := find
+	defer func() { find = orig }()
+	find = func(n int, label func(i int) string, multi bool) ([]int, error) {
+		return nil, ErrCancelled
+	}
+	got, ok, err := One([]string{"a"}, func(s string) string { return s })
+	if err != nil || ok || got != "" {
+		t.Fatalf("expected (zero, false, nil), got (%q, %v, %v)", got, ok, err)
+	}
+}
+
+func TestManyCancelReturnsNil(t *testing.T) {
+	orig := find
+	defer func() { find = orig }()
+	find = func(n int, label func(i int) string, multi bool) ([]int, error) {
+		return nil, ErrCancelled
+	}
+	got, err := Many([]string{"a"}, func(s string) string { return s })
+	if got != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got (%v, %v)", got, err)
+	}
+}
