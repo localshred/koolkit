@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/ktr0731/go-fuzzyfinder v0.9.0
+	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/spf13/cobra v1.8.1
 )
 
