@@ -8,3 +8,8 @@ asset = "kk-goto_{{.Os}}_{{.Arch}}.tar.gz"
 name = "prs"
 repo = "localshred/kk-prs"
 asset = "kk-prs_{{.Os}}_{{.Arch}}.tar.gz"
+
+[[plugin]]
+name = "claude"
+repo = "localshred/kk-claude"
+asset = "kk-claude_{{.Os}}_{{.Arch}}.tar.gz"

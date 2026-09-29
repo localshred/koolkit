@@ -21,6 +21,7 @@ brews:
     repository:
       owner: localshred
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
     homepage: https://github.com/localshred/koolkit
     description: Self-contained dev-utility plugin suite (kk)
