@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/localshred/koolkit/internal/pluginmgr"
 	"github.com/localshred/koolkit/internal/xdg"
@@ -32,9 +33,25 @@ func Dispatch(mgr *pluginmgr.Manager, name string, args []string, stdout, stderr
 	return 0
 }
 
-// NewRoot builds the kk root command. Subcommands are attached by their
-// own files (install, list, registry, bootstrap, doctor); unknown args
-// fall through to plugin dispatch (see Task A9).
+// Execute routes the process args and returns an exit code. A plugin
+// invocation (first arg is a bare name that is not a built-in command) is
+// dispatched raw so the plugin's own flags never reach kk's flag parser;
+// everything else runs through cobra.
+func Execute(version string) int {
+	root := NewRoot(version)
+	if name, rest, ok := pluginInvocation(root, os.Args[1:]); ok {
+		mgr := pluginmgr.New(xdg.BinDir())
+		return Dispatch(mgr, name, rest, os.Stdout, os.Stderr)
+	}
+	if err := root.Execute(); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// NewRoot builds the kk root command. Built-in subcommands are attached by
+// their own files (install, list, registry, bootstrap, doctor); plugin
+// dispatch is handled ahead of cobra in Execute.
 func NewRoot(version string) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "kk",
@@ -42,26 +59,29 @@ func NewRoot(version string) *cobra.Command {
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-	}
-	root.Args = cobra.ArbitraryArgs
-	root.RunE = func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
-		}
-		mgr := pluginmgr.New(xdg.BinDir())
-		if code := Dispatch(mgr, args[0], args[1:], cmd.OutOrStdout(), cmd.ErrOrStderr()); code != 0 {
-			os.Exit(code)
-		}
-		return nil
+		},
 	}
 	root.AddCommand(newBootstrapCmd(), newDoctorCmd(), newInstallCmd(), newUninstallCmd(), newListCmd(), newRegistryCmd())
+	root.InitDefaultHelpCmd()
+	root.InitDefaultCompletionCmd()
 	return root
 }
 
-// Execute runs the root command and returns a process exit code.
-func Execute(version string) int {
-	if err := NewRoot(version).Execute(); err != nil {
-		return 1
+// pluginInvocation reports whether args target a plugin rather than a
+// built-in command, splitting the plugin name from the args to forward. The
+// first arg must be a bare name (no leading dash) that is not a registered
+// subcommand or alias; a leading flag or a known command falls through to
+// cobra.
+func pluginInvocation(root *cobra.Command, args []string) (name string, rest []string, ok bool) {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		return "", nil, false
 	}
-	return 0
+	for _, c := range root.Commands() {
+		if c.Name() == args[0] || c.HasAlias(args[0]) {
+			return "", nil, false
+		}
+	}
+	return args[0], args[1:], true
 }
