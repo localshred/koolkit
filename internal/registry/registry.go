@@ -14,6 +14,7 @@ type Plugin struct {
 	Name  string `toml:"name"`
 	Repo  string `toml:"repo"`  // owner/repo
 	Asset string `toml:"asset"` // goreleaser asset template
+	Host  string `toml:"host"`  // optional release host; default github.com
 }
 
 type Registry struct {

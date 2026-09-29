@@ -62,11 +62,11 @@ func Install(dl Downloader, binDir string, p registry.Plugin, goos, goarch strin
 	if err != nil {
 		return err
 	}
-	tgz, err := dl.Get(AssetURL(p.Repo, asset))
+	tgz, err := dl.Get(AssetURL(p.Host, p.Repo, asset))
 	if err != nil {
 		return err
 	}
-	sums, err := dl.Get(ChecksumsURL(p.Repo))
+	sums, err := dl.Get(ChecksumsURL(p.Host, p.Repo))
 	if err != nil {
 		return err
 	}

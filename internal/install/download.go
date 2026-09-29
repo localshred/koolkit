@@ -33,12 +33,20 @@ func (httpDownloader) Get(url string) ([]byte, error) {
 // HTTP is the real downloader.
 var HTTP Downloader = httpDownloader{}
 
-func AssetURL(repo, asset string) string {
-	return fmt.Sprintf("https://github.com/%s/releases/latest/download/%s", repo, asset)
+// host returns the release host, defaulting to github.com when unset.
+func host(h string) string {
+	if h == "" {
+		return "github.com"
+	}
+	return h
 }
 
-func ChecksumsURL(repo string) string {
-	return fmt.Sprintf("https://github.com/%s/releases/latest/download/checksums.txt", repo)
+func AssetURL(h, repo, asset string) string {
+	return fmt.Sprintf("https://%s/%s/releases/latest/download/%s", host(h), repo, asset)
+}
+
+func ChecksumsURL(h, repo string) string {
+	return fmt.Sprintf("https://%s/%s/releases/latest/download/checksums.txt", host(h), repo)
 }
 
 // RenderAsset expands a goreleaser asset template. Os is title-cased to

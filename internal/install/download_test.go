@@ -4,8 +4,28 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 )
+
+func TestAssetURLDefaultHost(t *testing.T) {
+	got := AssetURL("", "localshred/kk-goto", "kk-goto_Darwin_arm64.tar.gz")
+	want := "https://github.com/localshred/kk-goto/releases/latest/download/kk-goto_Darwin_arm64.tar.gz"
+	if got != want {
+		t.Errorf("AssetURL default host = %q", got)
+	}
+	if sums := ChecksumsURL("", "localshred/kk-goto"); !strings.HasPrefix(sums, "https://github.com/") {
+		t.Errorf("ChecksumsURL default host = %q", sums)
+	}
+}
+
+func TestAssetURLExplicitHost(t *testing.T) {
+	got := AssetURL("ghe.example.com", "alice/kk-tool", "kk-tool_Linux_amd64.tar.gz")
+	want := "https://ghe.example.com/alice/kk-tool/releases/latest/download/kk-tool_Linux_amd64.tar.gz"
+	if got != want {
+		t.Errorf("AssetURL explicit host = %q", got)
+	}
+}
 
 func TestRenderAsset(t *testing.T) {
 	got, err := RenderAsset("kk-goto_{{.Os}}_{{.Arch}}.tar.gz", "darwin", "arm64")

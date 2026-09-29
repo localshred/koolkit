@@ -42,8 +42,8 @@ func TestInstallPlacesVerifiedBinary(t *testing.T) {
 	sum := sha256.Sum256(tgz)
 	sums := fmt.Sprintf("%s  kk-goto_Darwin_arm64.tar.gz\n", hex.EncodeToString(sum[:]))
 	dl := mapDownloader{
-		AssetURL(p.Repo, "kk-goto_Darwin_arm64.tar.gz"): tgz,
-		ChecksumsURL(p.Repo):                            []byte(sums),
+		AssetURL(p.Host, p.Repo, "kk-goto_Darwin_arm64.tar.gz"): tgz,
+		ChecksumsURL(p.Host, p.Repo):                            []byte(sums),
 	}
 	if err := Install(dl, binDir, p, "darwin", "arm64"); err != nil {
 		t.Fatalf("install: %v", err)
@@ -68,8 +68,8 @@ func TestInstallChecksumMismatchLeavesNoBinary(t *testing.T) {
 	p := registry.Plugin{Name: "goto", Repo: "localshred/kk-goto", Asset: "kk-goto_{{.Os}}_{{.Arch}}.tar.gz"}
 	tgz := makeTarGz(t, "kk-goto", []byte("BINARY"))
 	dl := mapDownloader{
-		AssetURL(p.Repo, "kk-goto_Darwin_arm64.tar.gz"): tgz,
-		ChecksumsURL(p.Repo):                            []byte("deadbeef  kk-goto_Darwin_arm64.tar.gz\n"),
+		AssetURL(p.Host, p.Repo, "kk-goto_Darwin_arm64.tar.gz"): tgz,
+		ChecksumsURL(p.Host, p.Repo):                            []byte("deadbeef  kk-goto_Darwin_arm64.tar.gz\n"),
 	}
 	if err := Install(dl, binDir, p, "darwin", "arm64"); err == nil {
 		t.Fatal("mismatch should error")
