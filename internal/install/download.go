@@ -48,7 +48,7 @@ func RenderAsset(tmpl, goos, goarch string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	data := struct{ Os, Arch string }{Os: strings.Title(goos), Arch: goarch}
+	data := struct{ Os, Arch string }{Os: titleFirst(goos), Arch: goarch}
 	var sb strings.Builder
 	if err := t.Execute(&sb, data); err != nil {
 		return "", err
@@ -74,4 +74,14 @@ func Verify(sums []byte, filename string, data []byte) error {
 		return fmt.Errorf("checksum mismatch for %s", filename)
 	}
 	return nil
+}
+
+// titleFirst upper-cases the first rune of s, matching goreleaser's Os
+// casing (darwin -> Darwin, linux -> Linux) without the deprecated
+// strings.Title.
+func titleFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }

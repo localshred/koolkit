@@ -63,17 +63,17 @@ func (m *Manager) Discover() ([]Plugin, error) {
 		out = append(out, Plugin{
 			Name:     name,
 			Path:     path,
-			Describe: m.describe(name),
+			Describe: m.describe(path),
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out, nil
 }
 
-func (m *Manager) describe(name string) string {
+func (m *Manager) describe(path string) string {
 	ch := make(chan string, 1) // buffered cap 1 — abandoned goroutine never blocks/leaks
 	go func() {
-		res, err := m.Run.Run("kk-"+name, "--kk-describe")
+		res, err := m.Run.Run(path, "--kk-describe")
 		if err != nil {
 			ch <- ""
 			return

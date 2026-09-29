@@ -52,7 +52,7 @@ func TestDiscoverReadsDescribe(t *testing.T) {
 	writeExec(t, dir, "notaplugin", `echo hi`)
 	m := New(dir)
 	m.Run = fakeRunner{describes: map[string]string{
-		"kk-goto": "navigate SCM urls",
+		filepath.Join(dir, "kk-goto"): "navigate SCM urls",
 	}}
 	got, err := m.Discover()
 	if err != nil {
@@ -60,6 +60,19 @@ func TestDiscoverReadsDescribe(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].Name != "goto" || got[0].Describe != "navigate SCM urls" {
 		t.Fatalf("discover = %+v", got)
+	}
+}
+
+func TestDiscoverReadsDescribeViaAbsolutePath(t *testing.T) {
+	dir := t.TempDir()
+	writeExec(t, dir, "kk-real", `[ "$1" = "--kk-describe" ] && echo "real plugin desc"`)
+	m := New(dir)
+	got, err := m.Discover()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Describe != "real plugin desc" {
+		t.Fatalf("describe by absolute path = %+v", got)
 	}
 }
 
