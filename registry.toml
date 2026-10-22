@@ -13,3 +13,8 @@ asset = "kk-prs_{{.Os}}_{{.Arch}}.tar.gz"
 name = "claude"
 repo = "localshred/kk-claude"
 asset = "kk-claude_{{.Os}}_{{.Arch}}.tar.gz"
+
+[[plugin]]
+name = "branches"
+repo = "localshred/kk-branches"
+asset = "kk-branches_{{.Os}}_{{.Arch}}.tar.gz"
